@@ -1,0 +1,15 @@
+{
+  "name": "hwp-report-skills",
+  "description": "연구보고서 한글(hwpx) 작성 스킬 묶음",
+  "owner": {
+    "name": "Chihun Lee"
+  },
+  "plugins": [
+    {
+      "name": "hwp-report",
+      "source": "./",
+      "description": "연구보고서 한글(hwpx) 양식 채우기(hwp_report) + 보고서 그림(report-figure)",
+      "version": "1.0.0"
+    }
+  ]
+}

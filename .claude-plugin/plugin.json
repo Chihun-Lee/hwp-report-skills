@@ -1,0 +1,8 @@
+{
+  "name": "hwp-report",
+  "version": "1.0.0",
+  "description": "연구보고서 한글(hwpx) 양식을 spec(YAML)으로 채우는 스킬(hwp_report)과 보고서용 실데이터 그림 스킬(report-figure). 기본 양식 구조: 연구개발과제 연차점검 보고서(양식1 계열, 기관명은 ○○ 처리한 예시).",
+  "author": {"name": "Chihun Lee"},
+  "license": "UNLICENSED",
+  "keywords": ["hwpx", "hwp", "report", "korean"]
+}
