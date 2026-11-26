@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
-"""두 hwpx의 본문을 문단 단위로 비교한다 (사용자 수정본 ↔ 빌드본).
+"""두 hwpx의 본문을 문단 단위로 비교한다 (사용자 수정본 ↔ 빌드본). 모든 구역을 본다.
 
     python diff_hwpx.py 빌드본.hwpx 사용자수정본.hwpx [--style]
 
 - 빈 문단은 공백 차이를 무시하고 「(빈 줄)」로 맞춘다. 그림은 이미지 md5와 표시 크기(mm)로 비교한다.
 - 표는 셀 글자를 (행,열) 순서로 비교한다. --style은 문단 정렬·여백·글자 크기·굵기까지 비교한다.
 차이가 없으면 종료 코드 0, 있으면 1.
+「무엇을 어떻게 고쳤나」를 표로 읽으려면 learn_diff.py(HR learn)를 쓴다.
 """
 import argparse
 import difflib
@@ -48,12 +49,22 @@ def styles(z):
 
 def lines(path, with_style=False):
     z = zipfile.ZipFile(path)
-    root = etree.fromstring(z.read("Contents/section0.xml"))
     hpf = z.read("Contents/content.hpf").decode("utf-8")
     items = dict(re.findall(r'<opf:item id="([^"]+)" href="([^"]+)"', hpf))
     cps, pps = styles(z) if with_style else ({}, {})
     out = []
-    for p in root.findall("hp:p", NS):
+    secs = sorted((n for n in z.namelist() if re.fullmatch(r"Contents/section\d+\.xml", n)),
+                  key=lambda n: int(re.findall(r"\d+", n)[0]))
+    paras = []
+    for k, name in enumerate(secs):
+        root = etree.fromstring(z.read(name), etree.XMLParser(huge_tree=True))
+        if k:
+            paras.append(f"== 구역{k} ==")      # 구역이 여러 개인 문서(통합 양식 등)
+        paras += root.findall("hp:p", NS)
+    for p in paras:
+        if isinstance(p, str):
+            out.append(p)
+            continue
         st = ""
         if with_style:
             r = p.find("hp:run", NS)

@@ -4,7 +4,7 @@
 
 | 스킬 | 하는 일 |
 |---|---|
-| `hwp_report` | 보고서 내용을 YAML(spec) 한 장에 쓰면 양식 서식 그대로 hwpx를 만든다. 기본 양식은 연구개발과제 연차점검 보고서 양식1의 구조만 남긴 예시(기관명 ○○)이고, 실제 양식은 각자 받은 hwpx를 등록해서 쓴다. 한컴에서 고친 파일을 spec으로 되돌려 다음 판에 반영하고, 넘기기 전 작성 규칙을 검사한다 |
+| `hwp_report` | 국책 R&D 연구보고서(연차·연차점검·단계·최종)를 한글(hwpx)로 쓴다. 실제 보고서 두 건에서 작성자가 판마다 고친 곳과 최종 제출본을 대조해 뽑은 **작성 규칙·장별 작성법**을 따른다. 단독 양식은 YAML(spec) 한 장으로 hwpx를 만들고, 주관기관이 보낸 통합 양식에는 남의 글·표·메모를 그대로 둔 채 우리 칸만 채운다. 한컴 PDF로 꼬리 줄·쪽 빈칸을 확인하고, 작성자 수정본은 덮어쓰지 않고 거둬들여 수정 포인트를 규칙으로 쌓는다 |
 | `report-figure` | 보고서용 그림을 실데이터 논문식으로 만든다(matplotlib, 한글 라벨, 400 dpi) |
 
 ## 설치 (한 번)
@@ -17,7 +17,7 @@ bash ~/hwp-report-skills/install.sh
 - `~/.claude/skills/`에 두 스킬이 연결되고, 파이썬 패키지가 `~/.hwp_report/venv`에 설치된다. 끝에 자가검사(`selftest OK`)가 돈다.
 - **필요**: macOS 또는 Linux, Python 3.9+, git
 - **있으면 좋음**: Node 18+와 `librsvg`(미리보기), `poppler`(쪽 빈칸 측정), 한컴오피스(PDF 확인)
-  - macOS: `brew install node librsvg poppler`
+  - macOS: `brew install node librsvg poppler` (꼬리 줄 검사 `tail`은 poppler가 필요)
 
 Claude Code 플러그인으로도 설치할 수 있다. 이 경우 스킬 이름 앞에 `hwp-report:`가 붙는다.
 
@@ -30,8 +30,19 @@ bash ~/.claude/plugins/marketplaces/hwp-report-skills/skills/hwp_report/scripts/
 ## 쓰기
 
 Claude Code에서 다음처럼 말하면 된다.
-- 「연차보고서 만들어줘」 또는 `/hwp_report`
-- 「내가 한컴에서 고친 거 반영해서 v02 만들어줘」
+- 「연차보고서 만들어줘」, 「국책보고서 써줘」 또는 `/hwp_report`
+- 「주관기관이 보낸 통합 양식에 우리 파트 옮겨 적어줘」
+- 「내가 한컴에서 고친 거 반영해서 v02 만들어줘」, 「내가 고친 포인트 정리해줘」
+
+주요 명령(`bash skills/hwp_report/scripts/hwp_report.sh <명령>`):
+
+| 명령 | 하는 일 |
+|---|---|
+| `build` · `check` | spec → hwpx, 게이트(구조 + 작성 규칙 + 제출 전 잔여물). `check --form 원본양식.hwpx`는 통합 양식의 우리 글만 검사 |
+| `learn 이전.hwpx 수정본.hwpx` | 작성자가 무엇을 어떻게 고쳤는지 표로(유형별 횟수, 반복 치환 = 규칙 후보) |
+| `extract` · `diff` | 수정본 → spec 왕복, 차이 0 확인 |
+| `dump 문서.hwpx` | 모든 구역의 문단·표 칸·모양 번호·메모 덤프(통합 양식에서 우리 칸 찾기) |
+| `pdf` · `tail` · `fill` | 한컴 PDF(사본으로, 입력 중엔 기다림) → 꼬리 줄 → 쪽 빈칸 |
 
 **처음 쓸 때**는 Claude가 두 가지를 묻는다.
 1. **문체**: 기본(기관 보고서 표준 개조식) / 내 문체 만들기(직접 쓴 보고서 3~10개를 주면 분석) / 설치된 문체 스킬

@@ -11,12 +11,19 @@
 ```yaml
 form: default                       # 생략 시 설정(config)의 양식. 등록한 양식 이름·폴더·hwpx 경로도 됨
 figures: [figs, ../그림/out]        # 그림 폴더(여러 개 가능). 그림 ID = 파일 이름(확장자 뺌)
-caption_format: "<{}>"              # 캡션 형식. 「그림. {}」 등으로 바꿀 수 있음
+caption_format: "<{}>"              # 캡션 형식. 문서 관례대로 "[{}]" 등 (writing_rules C1)
+caption_mode: below                 # (게이트) below | above(그림 위 ‧ 줄) | none — 엔진은 below만 만든다
 figure_box_mm: [150, 105]           # 그림 상한(폭, 높이)
 figure_dpi: 400                     # 그림 설계 해상도 — 픽셀 × 7200/dpi HWPUNIT = 설계 크기 1:1
 year: 1                             # (선택) 게이트: 성과 절에 다음 연차 내용이 있으면 경고
-lint: {forbid: [업체명1, 업체명2]}  # (선택) 게이트 금지어
+lint:                               # (선택) 게이트 설정 — 이 문서의 「문서 프로필」
+  forbid: [업체명1, 업체명2]        #   금지어(ERROR)
+  replace: {무인: 자동화}           #   과제 용어(WARN): 왼쪽을 쓰면 오른쪽으로 바꾸라고 알림
+  abbrev_gloss: never               #   약어 풀이 괄호: never(풀이 없이, 기본) | first(첫 등장에 풀이하는 문서)
 ```
+
+- `lint`는 기본 문체(`config style: default`)일 때 기본 규칙에 더해진다. 규칙 근거와 ★ 표시는 `writing_rules.md`.
+- 남의 글이 섞인 문서(수합본·통합 양식)는 `HR check 문서.hwpx --form 원본양식.hwpx`로 원본에 있던 글을 빼고 검사한다.
 
 ## 2. 표지·제출문·요약표
 

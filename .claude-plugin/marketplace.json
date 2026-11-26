@@ -8,8 +8,8 @@
     {
       "name": "hwp-report",
       "source": "./",
-      "description": "연구보고서 한글(hwpx) 양식 채우기(hwp_report) + 보고서 그림(report-figure)",
-      "version": "1.0.0"
+      "description": "국책 R&D 연구보고서 한글(hwpx) 작성(hwp_report: 단독 양식 spec 빌드·주관기관 통합 양식 병합·한컴 검수·작성자 수정 학습) + 보고서 그림(report-figure)",
+      "version": "1.1.0"
     }
   ]
 }

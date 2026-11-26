@@ -4,3 +4,7 @@ __pycache__/
 *_render/
 *.tmp
 .DS_Store
+
+# 개인 작업 기록 (공개 금지)
+_작업/
+_진행상황.md
