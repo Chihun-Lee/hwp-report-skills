@@ -1,15 +1,17 @@
 {
   "name": "hwp-report",
-  "version": "1.1.0",
-  "description": "국책 R&D 연구보고서(연차·연차점검·단계·최종) 한글(hwpx) 작성 스킬(hwp_report)과 보고서용 실데이터 그림 스킬(report-figure). 작성자가 판마다 고친 곳과 최종 제출본에서 뽑은 작성 규칙·장별 작성법, 단독 양식 spec 빌드, 주관기관 통합 양식 병합, 한컴 PDF 꼬리 줄 검수, 수정 포인트 학습. 기본 양식 구조: 연차점검 보고서(양식1 계열, 기관명은 ○○ 처리한 예시).",
+  "version": "1.2.0",
+  "description": "국책 R&D 연구보고서(연차·연차점검·단계·최종) 한글(hwpx) 작성 스킬(hwp_report)과 보고서용 실데이터 그림 스킬(report-figure). 작성자가 판마다 고친 곳과 최종 제출본에서 뽑은 작성 규칙·장별 작성법, 단독 양식 spec 빌드, 주관기관 통합 양식 병합, 한컴 PDF 꼬리 줄 검수(Windows COM·macOS), 수정 포인트 학습. 기본 양식 구조: 연차점검 보고서(양식1 계열, 기관명은 ○○ 처리한 예시).",
   "author": {
     "name": "Chihun Lee"
   },
   "license": "UNLICENSED",
   "keywords": [
-    "hwpx",
     "hwp",
+    "hwpx",
+    "korean",
+    "national-rnd-report",
     "report",
-    "korean"
+    "windows"
   ]
 }

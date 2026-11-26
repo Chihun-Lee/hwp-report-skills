@@ -5,7 +5,7 @@
     ~/.hwp_report/config.yaml          style: default | personal | skill:<스킬이름>,  form: default | <양식이름>
     ~/.hwp_report/style.md             내 문체 가이드(style: personal일 때)
     ~/.hwp_report/forms/<이름>/        등록한 양식: form.hwpx + profile.yaml
-    ~/.hwp_report/venv/                파이썬 패키지(setup.sh)
+    ~/.hwp_report/venv/                파이썬 패키지(hr.py setup)
 위치는 환경변수 HWP_REPORT_HOME으로 바꿀 수 있다.
 """
 import os
@@ -73,7 +73,7 @@ def resolve_form(arg=None, base=None):
         side = p.with_name("profile.yaml")
         prof = load_profile(p.parent) if side.exists() else load_profile(forms[DEFAULT_FORM])
         return p, prof, p.parent
-    raise SystemExit(f"양식을 찾지 못함: {arg} — 등록된 양식: {', '.join(forms)} (hwp_report.sh config forms)")
+    raise SystemExit(f"양식을 찾지 못함: {arg} — 등록된 양식: {', '.join(forms)} (hr.py config forms)")
 
 
 def style_info(cfg=None):

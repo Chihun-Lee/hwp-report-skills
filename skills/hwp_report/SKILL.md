@@ -9,8 +9,16 @@ description: 국책 R&D 연구보고서(연차보고서·연차점검·단계·�
 한 건은 단독 연차점검 보고서(초안 → 작성자 수정 → 수합 → 제출)이고, 다른 한 건은 주관기관 통합 양식에 공동기관 파트를 넣은 연차보고서(10여 판, 작성자 수정 2회, 1차 취합 → 최종)다.
 **원본은 spec·원고이고 hwpx는 결과물이다.** 작성자가 hwpx를 고치면 그 수정을 먼저 거둬들이고, 무엇을 고쳤는지 읽어 규칙으로 남긴 뒤 다음 판을 만든다.
 
-명령은 모두 `scripts/hwp_report.sh`로 실행한다. 아래에서 `HR`은 `bash <이 스킬 폴더>/scripts/hwp_report.sh`를 뜻한다.
-사용자별 설정·문체·양식·실제 사례 노트는 `~/.hwp_report/`에 있다. 스킬을 업데이트해도 이 폴더는 남는다.
+명령은 모두 `scripts/hr.py` 하나로 실행한다(macOS·Windows·Linux 공통). 아래에서 `HR`은 다음을 뜻한다.
+
+| 환경 | `HR` |
+|---|---|
+| macOS·Linux | `python3 "<이 스킬 폴더>/scripts/hr.py"` |
+| Windows (Git Bash·PowerShell) | `py -3 "<이 스킬 폴더>/scripts/hr.py"` — `py`가 없으면 `python`, 둘 다 안 되면 `"$HOME/.hwp_report/venv/Scripts/python.exe"` |
+
+- hr.py는 `~/.hwp_report/venv`의 파이썬을 알아서 골라 쓰므로, 어떤 파이썬으로 불러도 된다. 예전 `bash scripts/hwp_report.sh <명령>`도 그대로 동작한다.
+- Windows 경로는 `/`로 써도 된다(`C:/Users/…/보고서.hwpx`). 공백·한글이 든 경로는 큰따옴표로 감싼다.
+- 사용자별 설정·문체·양식·실제 사례 노트는 `~/.hwp_report/`(Windows: `C:\Users\<이름>\.hwp_report\`)에 있다. 스킬을 업데이트해도 이 폴더는 남는다.
 
 | 파일 | 내용 |
 |---|---|
@@ -26,14 +34,19 @@ description: 국책 R&D 연구보고서(연차보고서·연차점검·단계·�
 | `examples/report.example.yaml` | 기능을 모두 쓰는 예시 spec(가상 과제) |
 | `assets/forms/annual_review_2026/` | 기본 양식(form.hwpx)과 프로필(profile.yaml) |
 | `scripts/hwpx_patch.py` | 남의 양식에 문단·표를 끼워 넣는 라이브러리(서식 복제, 칸 안 메모·계산식 보존, 행 복제) |
-| `templates/figstyle.py` | matplotlib 그림 스타일(Arial + 나눔고딕, 400 dpi) |
+| `templates/figstyle.py` | matplotlib 그림 스타일(Arial + 있는 한글 글꼴: 나눔고딕·맑은 고딕·애플 SD 고딕, 400 dpi) |
 
 ## 0. 설치 확인
 
-- `HR selftest`가 「selftest OK」로 끝나면 된다.
-- 「파이썬 패키지 없음」이 나오면 `bash <스킬>/scripts/setup.sh`를 실행한다. `~/.hwp_report/venv`에 lxml·pyyaml·pillow·numpy를 설치한다.
+- `HR selftest`가 「selftest OK」로 끝나면 된다. `HR doctor`는 버전과, 무엇이 되고 무엇이 빠졌는지 보여 준다.
+- 사용자가 「hwp_report 업데이트해줘」, 「스킬 최신으로」라고 하면 `HR update`를 실행한다(timeout 10분). 최신본을 받아 다시 설치하고 자가검사까지 한다. 끝나면 Claude Code를 다시 시작해야 새 판이 쓰인다고 알린다.
+- 이 스킬을 처음 설치하는 절차(레포 링크를 받았을 때)는 레포의 `INSTALL.md`에 있다.
+- 「파이썬 패키지 없음」이 나오면 **사용자에게 묻지 않고 `HR setup`을 실행한다**(1~2분). `~/.hwp_report/venv`에 lxml·pyyaml·pillow·numpy·PyMuPDF(+Windows는 pywin32)를 설치하고 끝에 `doctor`를 보여 준다. 스킬 폴더·전역 파이썬은 건드리지 않는다.
+  - pip가 SSL·프록시 오류로 실패하면(회사망) `HR setup --pip-args "--trusted-host pypi.org --trusted-host files.pythonhosted.org"`.
+  - 「Python 3.9 이상 필요」·`python`을 못 찾으면 사용자에게 설치를 안내한다. Windows: `winget install -e --id Python.Python.3.12` 또는 python.org(「Add python.exe to PATH」 체크).
+  - 보고서 그림까지 만들면 `HR setup --figures`(matplotlib).
 - **필수**: Python 3.9+.
-- **선택**: poppler(꼬리 줄 `tail`·쪽 빈칸 `fill`·PDF 문체 샘플), macOS 한컴오피스(PDF 최종 확인), node 18+와 rsvg-convert(미리보기).
+- **선택**: 한컴오피스 한글(PDF 최종 확인 — Windows는 COM, macOS는 한컴오피스 앱), node 18+(헤드리스 미리보기).
 
 ## 1. 처음 쓸 때 — 문체·양식 고르기 (설정이 없으면 반드시)
 
@@ -126,10 +139,12 @@ HR check 통합본.hwpx --form 주관기관양식.hwpx                    # 통�
 ## 6. 검수 (넘기기 전 필수)
 
 1. `HR render 보고서.hwpx`로 헤드리스 미리보기를 만들고 `*_render/pair_*.png`를 **직접 열어 본다**. 표 칸, 그림, 캡션, 빈 줄, 들여쓰기를 본다.
+   - node가 없으면 건너뛰고 2로 간다(선택 기능).
    - ⚠️ rhwp는 큰 그림이 쪽 경계에 걸리면 뒤 내용을 빠뜨린다. 쪽 수·쪽 나눔·줄바꿈은 판단하지 않는다.
-2. **한컴 PDF**: `HR pdf 보고서.hwpx [대기초]` (macOS).
-   - 원본이 아니라 `HRQA_…` 사본을 열어 PDF만 뽑고 그 창만 닫는다. 사용자가 입력 중이면 입력이 멈출 때까지 기다린다.
-   - 화면이 꺼져 있거나 잠겨 있으면 종료 코드 3 — 「한컴 쪽 확인 대기」로 보고하고 화면이 켜진 뒤 다시 돌린다.
+2. **한컴 PDF**: `HR pdf 보고서.hwpx` → 같은 폴더에 `보고서.pdf`. 원본이 아니라 `HRQA_…` 사본을 열어 PDF만 뽑는다.
+   - **Windows**: 한글을 COM으로 새로 띄워(창 숨김) 사본을 열고 PDF로 저장한 뒤 그 문서만 버리고 닫는다. 사용자가 열어 둔 한글 창은 건드리지 않는다. 「파일 접근 허용」 창이 뜨면 사용자에게 「모두 허용」을 눌러 달라고 한다(setup이 보안 모듈을 등록해 두면 뜨지 않는다). 종료 코드 5 = 한글 COM 없음, 6 = 열기·저장 실패, 7 = 시간 초과(숨은 확인 창).
+   - **macOS**: `HR pdf 보고서.hwpx [대기초]`. 사용자가 입력 중이면 입력이 멈출 때까지 기다리고 HRQA 창만 닫는다. 화면이 꺼져 있거나 잠겨 있으면 종료 코드 3 — 「한컴 쪽 확인 대기」로 보고하고 화면이 켜진 뒤 다시 돌린다.
+   - 한글이 없으면 사용자에게 한글에서 「PDF로 저장」해 달라고 하고, 받은 PDF로 3·4를 한다.
    - 한컴에서 열 때 손상·복구 경고가 없어야 한다. 함정은 `references/layout.md`.
 3. **꼬리 줄**: `HR tail 보고서.pdf --hwpx 보고서.hwpx [--skip-form 원본양식.hwpx]` → 0개가 될 때까지 문장을 줄이고 다시 PDF.
 4. **쪽 빈칸**: `HR fill 보고서.pdf --hwpx 보고서.hwpx` → 큰 그림이 밀린 곳은 폭 줄이기·그림 나누기·문단 순서 조정. 제목이 쪽 끝에 홀로 남으면 다음 문단과 붙인다.

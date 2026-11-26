@@ -9,7 +9,7 @@ description: 연구 보고서·연차점검·평가 발표자료에 넣을 그�
 
 - hwpx에 넣는 일은 짝 스킬 `hwp_report`가 한다. spec 본문에 `[그림 ID] 캡션` 줄로 넣는다.
 - 공통 스타일은 이 스킬의 `templates/figstyle.py`를 프로젝트의 그림 폴더에 복사해 쓴다.
-  - 들어 있는 것: Arial + 나눔고딕 폴백, 패널 라벨, 스케일바, 삼원계 좌표, 한글 볼드 제목, png·pdf·jpg 동시 저장
+  - 들어 있는 것: Arial + 한글 글꼴 자동 폴백(나눔고딕·맑은 고딕 등), 패널 라벨, 스케일바, 삼원계 좌표, 한글 볼드 제목, png·pdf·jpg 동시 저장
 
 ## 1. 원칙
 
@@ -42,7 +42,9 @@ description: 연구 보고서·연차점검·평가 발표자료에 넣을 그�
    - 원소 기호, 시료 ID, 단위
    - 약어: OM, SEM, XRD, HV 등
    - 고유 표기: IP, 포트, OS, 소프트웨어 이름
-3. **폰트**: `font.family = ["Arial", "Nanum Gothic"]`(templates/figstyle.py)로 한글만 나눔고딕으로 자동 대체한다.
+3. **폰트**: 영문·숫자는 Arial, 한글은 그 컴퓨터에 있는 글꼴로 자동 대체한다(templates/figstyle.py — macOS 나눔고딕·애플 SD 고딕, Windows 맑은 고딕, Linux Noto Sans CJK).
+   - 한글 글꼴이 하나도 없으면 import 때 경고가 나온다. 나눔고딕이나 맑은 고딕을 설치한다.
+   - matplotlib이 없으면 `python3 <hwp_report 스킬>/scripts/hr.py setup --figures`(Windows는 `py -3 …`)로 설치하고, 그림 스크립트는 그 가상환경의 파이썬으로 돌린다: macOS·Linux `~/.hwp_report/venv/bin/python`, Windows `~/.hwp_report/venv/Scripts/python.exe`.
 4. **함정**
    - **한글이 든 라벨에 mathtext(`$...$`)를 섞지 않는다.** 한글이 □로 깨진다. 유니코드로 쓴다.
      - `ΔZ`, `√I`, `s cm⁻³`, `g/min`
@@ -54,7 +56,7 @@ description: 연구 보고서·연차점검·평가 발표자료에 넣을 그�
 
 1. **그림 안에 a·b·c 패널 글자를 쓰지 않는다.** 대신 소제목을 **볼드**로 단다.
    - 한글 볼드는 `btitle()`/`btext()`(templates/figstyle.py)를 쓴다.
-   - 나눔고딕 ttc의 굵은체는 matplotlib이 못 읽으므로 KoPub돋움 Bold 같은 한글 볼드 폰트로 그린다.
+   - 나눔고딕 ttc의 굵은체는 matplotlib이 못 읽으므로 굵은체 파일이 따로 있는 글꼴(KoPub돋움 → 맑은 고딕 → Noto 순, figstyle이 고름)로 그린다.
    - 패널이 하나뿐인 그림은 볼드 제목을 넣지 않는다. 캡션과 같은 말이 두 번 나온다.
 2. **그림 안 글씨를 크게.** 본문 9 pt, 패널 제목 9.5~10 pt, 표 셀 9 pt 이상으로 하고, 어떤 글자도 7.5 pt 아래로 내리지 않는다.
    - 원본 캡처에 박힌 작은 글자(컬러바 숫자, 작은 스케일바)는 잘라내고 matplotlib으로 다시 그린다.

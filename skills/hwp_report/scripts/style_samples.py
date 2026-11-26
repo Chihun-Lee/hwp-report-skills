@@ -42,8 +42,11 @@ def docx_lines(p):
 
 def pdf_lines(p):
     if shutil.which("pdftotext"):
-        return subprocess.run(["pdftotext", "-layout", str(p), "-"], capture_output=True, text=True).stdout.splitlines()
-    import fitz  # PyMuPDF
+        return subprocess.run(["pdftotext", "-layout", str(p), "-"], capture_output=True, text=True, encoding="utf-8", errors="replace").stdout.splitlines()
+    try:
+        import pymupdf as fitz  # PyMuPDF
+    except ImportError:
+        import fitz
     return [ln for pg in fitz.open(p) for ln in pg.get_text().splitlines()]
 
 

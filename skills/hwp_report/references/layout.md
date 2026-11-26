@@ -18,15 +18,16 @@
 
 ## 검수 순서
 
-1. **게이트**: `check_report.py report.hwpx --spec report.yaml`
+1. **게이트**: `HR check report.hwpx --spec report.yaml`
    - 구조(zip·mimetype·XML·스타일 참조·그림 파일)와 작성 규칙(lint)을 본다.
    - ERROR가 0이어야 넘긴다. WARN은 하나씩 읽고 판단한다.
-2. **빠른 미리보기**: `bash render.sh report.hwpx` → `report_render/pair_*.png`를 직접 연다.
-   - rhwp 헤드리스 렌더라 한컴이 없어도 된다.
+2. **빠른 미리보기**: `HR render report.hwpx` → `report_render/pair_*.png`를 직접 연다.
+   - rhwp 헤드리스 렌더라 한컴이 없어도 된다. node 18+가 필요하다(없으면 건너뛴다). PNG 변환은 rsvg-convert가 있으면 그것, 없으면 PyMuPDF.
    - ⚠️ 줄배치 캐시가 없는 빌드본에서는 큰 그림이 쪽 경계에 걸리면 **뒤 내용을 통째로 빠뜨린다.** 쪽 수가 한컴보다 적게 나온다. 쪽 나눔 판단에는 쓰지 않는다.
 3. **최종 쪽 배치**: 한컴 PDF로 확인한다.
-   - macOS: `HR pdf report.hwpx` — 원본이 아니라 `HRQA_…` 사본을 열어 PDF만 뽑고 그 창만 닫는다. 작성자가 같은 문서를 열어 두고 있어도 된다.
-   - Windows·한컴이 손에 있으면 직접 열어 PDF로 저장한다.
+   - `HR pdf report.hwpx` — 원본이 아니라 `HRQA_…` 사본을 열어 PDF만 뽑는다. 작성자가 같은 문서를 열어 두고 있어도 된다.
+     - Windows: 한글 COM(새 인스턴스, 창 숨김). macOS: 한컴오피스 앱(입력이 멈췄을 때만 잠깐 앞으로). 아래 함정 참고.
+   - 한글이 없는 환경이면 작성자에게 한글에서 「PDF로 저장」해 달라고 하고, 그 PDF로 4·5를 돈다.
    - 한컴이 열면서 경고(「손상된 문서」, 「복구」)를 띄우지 않는지도 함께 본다.
 4. **꼬리 줄**: `HR tail report.pdf --hwpx report.hwpx` — 마지막 줄에 몇 글자(기본 4자 이하)만 넘어간 문단을 찾는다.
    - 한컴은 한글을 **글자 단위로** 줄바꿈한다(「…자동화 측정 / 함」). 미리보기 렌더(rhwp)·LibreOffice의 줄바꿈은 달라서 확정에 쓰지 않는다.
@@ -42,6 +43,17 @@
      - 문단 순서를 바꾼다.
    - 제목(「N) 절 제목」, □ 제목, 기관 표시 줄)이 쪽 끝에 홀로 남으면 다음 문단과 붙인다(keepWithNext).
    - 장 끝의 빈 줄 때문에 빈 쪽이 생기면 그 빈 줄을 지운다.
+
+## 한컴 PDF 자동화(Windows) 함정
+
+- 한글을 COM(`HWPFrame.HwpObject`)으로 **새로** 띄운다. 사용자가 열어 둔 한글 창과 별개이고, 키 입력을 보내지 않으므로 입력 중이어도 된다.
+- **「한글을 이용하여 파일에 접근하려는 시도」 보안 창**: 보안 모듈 DLL이 등록돼 있으면 뜨지 않는다.
+  - `HR setup`이 pyhwpx(MIT) 패키지에서 `FilePathCheckerModule.dll`만 받아 `~/.hwp_report/`에 두고 `HKCU\Software\HNC\HwpAutomation\Modules`의 `FilePathCheckerModule` 값으로 등록한다(사용자 레지스트리, 관리자 권한 불필요). 상태는 `HR doctor`.
+  - 등록이 안 됐으면 스크립트가 한글 창을 보이게 띄운다. 보안 창에서 「모두 허용」을 누르면 된다.
+- 확인 창이 숨은 채로 떠서 멈추면 `--timeout`(기본 300초) 뒤 종료 코드 7로 끝난다. 작업 표시줄의 한글 창에서 확인 창을 닫거나, 작업 관리자에서 그 Hwp.exe를 끝낸다.
+- `HWPFrame.HwpObject`를 못 찾으면(종료 코드 5) 한글이 설치돼 있지 않거나, 설치 뒤 한 번도 직접 실행하지 않은 경우다. 한글을 한 번 열어 초기 설정을 마치고 다시 돌린다.
+- 같은 이름의 PDF가 뷰어에 열려 있으면 덮어쓸 수 없어 `이름_HHMMSS.pdf`로 저장한다.
+- PDF 저장은 `FileSaveAs_S`(PDF) → `FileSaveAsPdf` → `SaveAs` 순서로 시도한다. 큰 문서는 파일 크기가 멈출 때까지 기다린다.
 
 ## 한컴 PDF 자동화(macOS) 함정
 

@@ -2,7 +2,7 @@
 """쪽마다 본문 아래에 남은 빈칸(mm)을 잰다 — 큰 그림이 다음 쪽으로 밀려 빈칸이 생긴 곳 찾기.
 
     python page_fill.py report.pdf --hwpx report.hwpx          # 한컴 PDF (권장, 쪽 나눔이 정확)
-    python page_fill.py report_render/ --hwpx report.hwpx      # render.sh 결과 PNG 폴더
+    python page_fill.py report_render/ --hwpx report.hwpx      # hr.py render 결과 PNG 폴더
 
 배율은 쪽 안 글자 폭(본문 폭이 가장 넓은 줄)으로 자동 보정한다(한컴 PDF는 약 0.77배로 축소 저장됨).
 빈칸이 --min(기본 45 mm)보다 크면 표시한다. 장 끝·쪽 나눔 직전 쪽은 정상일 수 있으니 PNG를 직접 본다.
@@ -42,7 +42,10 @@ def load_pages(src, dpi):
         if shutil.which("pdftoppm"):
             subprocess.run(["pdftoppm", "-r", str(dpi), "-gray", "-png", str(src), str(tmp / "p")], check=True)
             return [np.asarray(Image.open(f).convert("L")) for f in sorted(tmp.glob("p*.png"))]
-        import fitz  # PyMuPDF
+        try:
+            import pymupdf as fitz  # PyMuPDF
+        except ImportError:
+            import fitz
         doc = fitz.open(src)
         out = []
         for pg in doc:
@@ -55,7 +58,7 @@ def load_pages(src, dpi):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("src", help="PDF 또는 render.sh PNG 폴더")
+    ap.add_argument("src", help="PDF 또는 hr.py render PNG 폴더")
     ap.add_argument("--hwpx", required=True, help="쪽 여백을 읽을 hwpx")
     ap.add_argument("--min", type=float, default=45, help="표시할 빈칸 기준 mm")
     ap.add_argument("--dpi", type=int, default=110)

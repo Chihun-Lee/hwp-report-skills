@@ -5,6 +5,25 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib import font_manager as _fm
+
+_HAVE = {f.name for f in _fm.fontManager.ttflist}
+
+
+def _pick(*names):
+    return [n for n in names if n in _HAVE]
+
+
+# 영문·숫자는 Arial, 한글은 이 컴퓨터에 있는 글꼴로 자동 대체
+#   macOS: 나눔고딕 → 애플 SD 고딕 · Windows: 맑은 고딕 · Linux: Noto Sans CJK
+LATIN = (_pick("Arial", "Liberation Sans", "Helvetica") or ["DejaVu Sans"])[:1]
+KOREAN = _pick("Nanum Gothic", "NanumGothic", "Malgun Gothic", "Apple SD Gothic Neo", "AppleGothic",
+               "Noto Sans CJK KR", "Noto Sans KR")[:1]
+# 굵은 한글: 나눔고딕 ttc의 굵은체는 matplotlib이 못 읽으므로 굵은체 파일이 따로 있는 글꼴을 먼저 쓴다
+KOREAN_BOLD = (_pick("KoPubDotum", "KoPubWorldDotum", "Malgun Gothic", "Noto Sans CJK KR", "Noto Sans KR") or KOREAN)[:1]
+if not KOREAN:
+    import sys
+    print("⚠️ figstyle: 한글 글꼴 없음 — 나눔고딕 또는 맑은 고딕을 설치해야 한글이 네모로 안 나온다", file=sys.stderr)
 
 MM = 1 / 25.4
 FULL_W = 178 * MM          # 두 단 폭(보고서 본문 폭 170 mm에 거의 1:1로 들어감)
@@ -15,7 +34,7 @@ C = dict(navy="#1F3A5F", blue="#3C7DB5", teal="#2BA59A", green="#5FA83A",
 SERIES = ["#3C7DB5", "#E07B39", "#5FA83A", "#8E5BB5", "#1F3A5F"]   # 계열 색 순서
 
 plt.rcParams.update({
-    "font.family": ["Arial", "Nanum Gothic"],   # 영문·숫자 Arial, 한글은 나눔고딕으로 자동 대체
+    "font.family": LATIN + KOREAN + ["DejaVu Sans"],   # 영문·숫자 Arial, 한글은 있는 글꼴로 자동 대체
     "font.size": 9,
     "axes.labelsize": 9,
     "axes.titlesize": 9.5,
@@ -100,8 +119,8 @@ def save(fig, path):
 
 
 # ── 그림 안 a·b·c 패널 글자 없음, 소제목은 볼드 ─────────────────
-# 나눔고딕은 ttc 안의 굵은체를 matplotlib이 못 읽으므로, 볼드 한글은 KoPub돋움 Bold(~/Library/Fonts)로 쓴다.
-BOLD_KO = dict(family=["Arial", "KoPubDotum"], weight="bold")
+# 볼드 한글은 KOREAN_BOLD(KoPub돋움 → 맑은 고딕 → Noto 순, 위에서 고름)로 쓴다.
+BOLD_KO = dict(family=LATIN + KOREAN_BOLD, weight="bold")
 SPLIT_W = 140 * MM         # 본문 사이에 넣는 분할 그림 설계 폭(보고서에 1:1로 들어감, 본문 170 mm의 약 80 %)
 
 

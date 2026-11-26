@@ -9,11 +9,12 @@
   주관기관 원본 양식을 주면 우리 문단만 검사한다.
 - 쪽 번호(-12-, - 12 -)와 여러 쪽에 되풀이되는 머리말·꼬리말 줄은 본문 줄 사이에서 뺀다.
 - 고치는 법: 같은 뜻으로 몇 글자 줄여 한 줄에 맞추거나, 이웃 문장과 합친다(writing_rules.md B12).
-필요: poppler(pdftotext).
+PDF 읽기: PyMuPDF(기본 설치, Windows 포함). 없으면 poppler의 pdftotext를 쓴다. `--engine`으로 고를 수 있다.
 """
 import argparse
 import collections
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -30,12 +31,33 @@ def norm(s):
     return re.sub(r"[\s·ㆍ‧・∙❍○ｏ□■◦•●\-–—※]+", "", s)
 
 
-def pdf_lines(pdf):
+def _mupdf():
+    try:
+        import pymupdf
+    except ImportError:
+        import fitz as pymupdf  # 옛 PyMuPDF
+    return pymupdf
+
+
+def pdf_lines_mupdf(pdf):
+    pymupdf = _mupdf()
+    lines = []
+    with pymupdf.open(str(pdf)) as doc:
+        for pno, page in enumerate(doc, 1):
+            for b in page.get_text("dict")["blocks"]:
+                for ln in b.get("lines", []):
+                    t = "".join(sp["text"] for sp in ln["spans"])
+                    if t.strip():
+                        lines.append((pno, float(ln["bbox"][1]), t))
+    return lines
+
+
+def pdf_lines_poppler(pdf):
     with tempfile.TemporaryDirectory() as td:
         out = Path(td) / "b.html"
         subprocess.run(["pdftotext", "-bbox-layout", str(pdf), str(out)], check=True,
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        root = etree.parse(str(out), etree.HTMLParser(encoding="utf-8")).getroot()
+        root = etree.fromstring(out.read_bytes(), etree.HTMLParser(encoding="utf-8"))
     lines = []
     for pno, page in enumerate(root.iter("page"), 1):
         for ln in page.iter("line"):
@@ -43,6 +65,18 @@ def pdf_lines(pdf):
             if t.strip():
                 lines.append((pno, float(ln.get("ymin")), t))
     return lines
+
+
+def pdf_lines(pdf, engine="auto"):
+    if engine in ("auto", "mupdf"):
+        try:
+            return pdf_lines_mupdf(pdf)
+        except ImportError:
+            if engine == "mupdf":
+                raise SystemExit("PyMuPDF 없음 — hr.py setup 을 다시 실행")
+    if not shutil.which("pdftotext"):
+        raise SystemExit("PDF를 읽을 도구가 없음 — hr.py setup (PyMuPDF 설치) 또는 poppler 설치")
+    return pdf_lines_poppler(pdf)
 
 
 def drop_margins(lines):
@@ -66,11 +100,13 @@ def main():
     ap.add_argument("--max", type=int, default=4, help="이 글자 수 이하로 넘어간 마지막 줄을 꼬리 줄로 봄")
     ap.add_argument("--skip-form", help="이 hwpx에 똑같이 있는 문단은 검사하지 않음(양식·남의 원본)")
     ap.add_argument("--min-len", type=int, default=15)
+    ap.add_argument("--engine", choices=["auto", "mupdf", "poppler"], default="auto",
+                    help="PDF 글 읽기 도구 (auto = PyMuPDF, 없으면 pdftotext)")
     x = ap.parse_args()
 
     skip = {norm(t) for _, _, t in body_texts(x.skip_form)} if x.skip_form else set()
     paras = [(s, i, t) for s, i, t in body_texts(x.hwpx, x.min_len) if norm(t) not in skip]
-    flat = drop_margins(pdf_lines(x.pdf))
+    flat = drop_margins(pdf_lines(x.pdf, x.engine))
     tails, lost, start = [], [], 0
     for s, i, t in paras:
         target = norm(t)
