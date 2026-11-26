@@ -306,8 +306,9 @@ def update(argv):
             sys.exit(f"git pull 실패 — {src} 에서 직접 고친 파일이 있으면 정리하고 다시 실행한다")
         _, after = _git(src, "rev-parse", "HEAD")
         if before == after and not a.force:
-            print(f"✓ 이미 최신 ({old})")
+            print(f"✓ 이미 최신 ({old}, {after[:7]})")
             return
+        old = f"{old} ({before[:7]})"
     else:                                       # zip으로 받은 설치 → 최신 zip을 ~/.hwp_report/src 로 다시 받는다
         url = (info.get("repo_url") or REPO_URL).rstrip("/") + "/archive/refs/heads/main.zip"
         HOME.mkdir(parents=True, exist_ok=True)
@@ -335,7 +336,10 @@ def update(argv):
         cmd += ["--pip-args", a.pip_args]
     rc = subprocess.call(cmd)
     if rc == 0:
-        print(f"✓ 업데이트 {old} → {install_info().get('version', '?')}. Claude Code를 다시 시작하면 새 판이 쓰인다.")
+        new = install_info().get("version", "?")
+        if (src / ".git").exists() and shutil.which("git"):
+            new += f" ({_git(src, 'rev-parse', '--short', 'HEAD')[1]})"
+        print(f"✓ 업데이트 {old} → {new}. Claude Code를 다시 시작하면 새 판이 쓰인다.")
     sys.exit(rc)
 
 
