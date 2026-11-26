@@ -67,8 +67,8 @@ install.cmd --link         :: 복사 대신 연결 (git clone 폴더에서 git p
 ### macOS · Linux
 
 ```bash
-git clone https://github.com/Chihun-Lee/hwp-report-skills.git ~/hwp-report-skills
-bash ~/hwp-report-skills/install.sh
+git clone https://github.com/Chihun-Lee/hwp-report-skills.git ~/.hwp_report/src
+bash ~/.hwp_report/src/install.sh
 ```
 
 macOS·Linux에서는 기본으로 `~/.claude/skills/`에 연결(심링크)하므로, `git pull`만 하면 최신이 된다.

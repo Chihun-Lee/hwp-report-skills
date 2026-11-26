@@ -41,11 +41,17 @@ git clone --depth 1 https://github.com/Chihun-Lee/hwp-report-skills.git "$HOME/.
 ```
 
 - 이미 `~/.hwp_report/src`가 있으면 새로 받지 않고 갱신한다: `git -C "$HOME/.hwp_report/src" pull --ff-only`
-- git이 없으면 zip으로 받는다. macOS·Linux는 `curl.exe` 대신 `curl`, `py -3` 대신 `python3`을 쓴다.
-  ```bash
-  curl.exe -fL -o "$HOME/hwp-report-skills.zip" https://github.com/Chihun-Lee/hwp-report-skills/archive/refs/heads/main.zip
-  py -3 -m zipfile -e "$HOME/hwp-report-skills.zip" "$HOME/.hwp_report"
-  ```
+- git이 없으면 zip으로 받는다.
+  - Windows
+    ```bash
+    curl.exe -fL -o "$HOME/hwp-report-skills.zip" https://github.com/Chihun-Lee/hwp-report-skills/archive/refs/heads/main.zip
+    py -3 -m zipfile -e "$HOME/hwp-report-skills.zip" "$HOME/.hwp_report"
+    ```
+  - macOS·Linux
+    ```bash
+    curl -fL -o "$HOME/hwp-report-skills.zip" https://github.com/Chihun-Lee/hwp-report-skills/archive/refs/heads/main.zip
+    python3 -m zipfile -e "$HOME/hwp-report-skills.zip" "$HOME/.hwp_report"
+    ```
   원본 폴더는 `$HOME/.hwp_report/hwp-report-skills-main`이 된다. 3단계의 `src`를 이 경로로 바꾼다.
 
 ## 3. 설치
@@ -67,9 +73,11 @@ python3 "$HOME/.hwp_report/src/install.py"        # macOS·Linux
   py -3 "$HOME/.hwp_report/src/install.py" --pip-args "--trusted-host pypi.org --trusted-host files.pythonhosted.org"
   ```
 
-## 4. 한컴 PDF 시험 (Windows, 한글이 설치된 경우)
+## 4. 한컴 PDF 시험 — Windows에서 한글이 있을 때만
 
-3단계의 `doctor` 출력에 「한컴오피스 한글 COM(HWPFrame.HwpObject) 등록됨」이 있으면 이 시험을 한다. 먼저 사용자에게 「한글이 잠깐 백그라운드에서 실행된다」고 알린다.
+**macOS·Linux는 이 단계를 건너뛴다.** macOS에서는 한컴 창이 화면 앞으로 올라오므로 사용자가 원할 때만 한다.
+
+Windows에서 3단계의 `doctor` 출력에 「한컴오피스 한글 COM(HWPFrame.HwpObject) 등록됨」이 있으면 이 시험을 한다. 먼저 사용자에게 「한글이 잠깐 백그라운드에서 실행된다」고 알린다.
 
 ```bash
 py -3 "$HOME/.claude/skills/hwp_report/scripts/hr.py" selftest --pdf
@@ -79,9 +87,7 @@ py -3 "$HOME/.claude/skills/hwp_report/scripts/hr.py" selftest --pdf
   - `한컴 PDF OK`와 `selftest OK`가 나오면 한컴 PDF로 쪽·꼬리 줄을 검수할 수 있다.
   - 한글 창에 「한글을 이용하여 파일에 접근하려는 시도」가 뜨면, 사용자에게 「모두 허용」을 눌러 달라고 한다.
   - 실패해도 hwpx 작성과 게이트 검사는 된다. 출력과 종료 코드(5 한글 COM 없음 · 6 열기·저장 실패 · 7 시간 초과)를 사용자에게 그대로 보여 준다.
-- 언제 건너뛰는가
-  - 한글이 없으면 건너뛴다.
-  - macOS에서도 건너뛴다. 한컴 창이 화면 앞으로 올라오기 때문이다. 사용자가 원할 때만 한다.
+- 한글이 없으면 건너뛴다.
 
 ## 5. 사용자에게 알리기
 
@@ -101,6 +107,7 @@ py -3 "$HOME/.claude/skills/hwp_report/scripts/hr.py" selftest --pdf
   py -3 "$HOME/.claude/skills/hwp_report/scripts/hr.py" update
   ```
   - `~/.hwp_report`의 설정·문체·양식은 그대로 남는다.
+  - 원본을 어디에 받았든 된다. 설치 때 원본 위치를 `~/.hwp_report/install.json`에 적어 두기 때문이다.
 - **삭제**: `py -3 "$HOME/.hwp_report/src/install.py" --uninstall`은 스킬 두 개만 지운다. 설정·가상환경까지 지우려면 `~/.hwp_report` 폴더도 지운다.
 
 ## 문제 해결
