@@ -17,10 +17,12 @@
   learn    이전판.hwpx 수정본.hwpx [-o 수정포인트.md]              작성자가 고친 곳·유형·반복 치환 표
   dump     문서.hwpx -o 폴더 | --find 정규식 | --memos             모든 구역 문단·표 칸·모양 번호·메모 덤프
   render   report.hwpx [outdir]                                    헤드리스 쪽 PNG 미리보기 (node 18+ 필요)
+  figs     <그림 모듈 폴더|fig_*.py> [--out 폴더] | --from 고친.pptx   수정 가능한 PPT 그림(그림 1개 = 슬라이드 1장) + PNG·JPG
+  key      list | set 이름 | skip 이름 | get 이름 | forget 이름       외부 API 키 보관(필요한 기능이 있을 때만)
   pdf      report.hwpx [옵션]                                      한컴 PDF — Windows: 한글 COM / macOS: 한컴오피스
   fill     report.pdf --hwpx report.hwpx                           쪽 아래 빈칸(mm)
   tail     report.pdf --hwpx report.hwpx [--skip-form 양식.hwpx]   꼬리 줄(마지막 줄 몇 글자) 찾기
-  selftest [--pdf]                                                 예시로 빌드·게이트·왕복 검사 (--pdf: 한컴 PDF·꼬리 줄까지)
+  selftest [--pdf] [--ppt]                                         예시로 빌드·게이트·왕복 검사 (--pdf: 한컴 PDF·꼬리 줄, --ppt: PPT 그림 그리기까지)
 
 파이썬은 $HWP_REPORT_PY → ~/.hwp_report/venv → 지금 실행한 파이썬 순서로 고른다.
 사용자 자료 위치는 $HWP_REPORT_HOME(기본 ~/.hwp_report)으로 바꿀 수 있다.
@@ -48,8 +50,9 @@ SCRIPTS = {
     "config": "config.py", "style": "style_samples.py", "analyze": "analyze_form.py",
     "build": "build_report.py", "check": "check_report.py", "extract": "extract_spec.py",
     "diff": "diff_hwpx.py", "learn": "learn_diff.py", "dump": "dump_hwpx.py",
-    "tail": "tail_check.py", "fill": "page_fill.py", "render": "render.py",
+    "tail": "tail_check.py", "fill": "page_fill.py", "render": "render.py", "figs": "fig_ppt.py",
 }
+FIG_PKGS = ["matplotlib", "python-pptx"]   # 보고서 그림: matplotlib 그림 + 수정 가능한 PPT 그림
 
 for _s in (sys.stdout, sys.stderr):       # Windows 콘솔(cp949)에서 ✓·○ 같은 글자로 죽지 않게
     try:
@@ -99,7 +102,7 @@ def need_python():
 def setup(argv):
     import argparse
     ap = argparse.ArgumentParser(prog="hr.py setup")
-    ap.add_argument("--figures", action="store_true", help="그림(report-figure)용 matplotlib도 설치")
+    ap.add_argument("--figures", action="store_true", help="그림용 matplotlib·python-pptx도 설치")
     ap.add_argument("--pip-args", default=os.environ.get("HR_PIP_ARGS", ""),
                     help='pip에 넘길 인자. 회사망 SSL 오류면 "--trusted-host pypi.org --trusted-host files.pythonhosted.org"')
     a = ap.parse_args(argv)
@@ -114,7 +117,7 @@ def setup(argv):
             sys.exit("venv를 만들지 못함 — Linux면 python3-venv 패키지를 설치한다")
     extra = a.pip_args.split()
     pip = [str(vpy), "-m", "pip", "install", "-q", "--disable-pip-version-check", *extra]
-    pkgs = BASE_PKGS + (WIN_PKGS if WIN else []) + (["matplotlib"] if a.figures else [])
+    pkgs = BASE_PKGS + (WIN_PKGS if WIN else []) + (FIG_PKGS if a.figures else [])
     print("파이썬 패키지 설치:", " ".join(pkgs))
     subprocess.run(pip + ["--upgrade", "pip"], capture_output=True)      # 실패해도 계속(오래된 pip로도 대개 된다)
     if subprocess.run(pip + pkgs).returncode:
@@ -188,11 +191,23 @@ def doctor(argv=()):
         print(f"  {ok(ko)} 그림 한글 글꼴: " + (ko or "없음 — 나눔고딕 또는 맑은 고딕 설치"))
     else:
         print("  · 그림(matplotlib): 없음 — 보고서 그림을 만들려면 hr.py setup --figures")
+    if has(py, "pptx"):
+        r = subprocess.run([py, "-c", "import sys; sys.path.insert(0, sys.argv[1]); import fig_ppt as f; "
+                            "print('PowerPoint' if f.has_powerpoint() else '', 'LibreOffice' if f.find_soffice() else '')",
+                            str(HERE)], capture_output=True, text=True, encoding="utf-8", errors="replace", env=child_env())
+        eng = " · ".join(r.stdout.split())
+        print("  ✓ 수정 가능한 PPT 그림(python-pptx) — 그림 이미지 뽑기: " + (eng or "PowerPoint·LibreOffice 없음(PPTX만 만듦)"))
+    else:
+        print("  · 수정 가능한 PPT 그림(python-pptx): 없음 — hr.py setup --figures")
+    keys = _keys_load()
+    if keys:
+        print("  · API 키: " + ", ".join(f"{k}({'있음' if v.get('value') else '없음→생략'})" for k, v in sorted(keys.items())))
 
 
 # ── selftest ─────────────────────────────────────────────────────────
 def selftest(argv=()):
     want_pdf = "--pdf" in argv
+    want_ppt = "--ppt" in argv
     py = need_python()
     ex = ROOT / "examples"
     with tempfile.TemporaryDirectory() as td:
@@ -223,6 +238,21 @@ def selftest(argv=()):
             r = subprocess.run([shutil.which("node"), str(HERE / "render.mjs"), str(T / "ex.hwpx"), str(T / "svg")],
                                capture_output=True, text=True, encoding="utf-8", errors="replace")
             print(("미리보기 " + r.stdout.strip()) if r.returncode == 0 else f"⚠️ 미리보기 실패(선택 기능): {r.stderr[-300:]}")
+        if has(py, "pptx"):
+            eng = "auto" if want_ppt else "none"
+            r = subprocess.run([py, "-X", "utf8", str(HERE / "fig_ppt.py"), str(ex / "ppt_figs"), "--out", str(T / "pptfigs"),
+                                "--engine", eng], cwd=ex, env=env, capture_output=True, text=True, encoding="utf-8",
+                               errors="replace")
+            pngs = sorted((T / "pptfigs").glob("*.png"))
+            if r.returncode not in (0, 4) or not (T / "pptfigs" / "그림_편집용.pptx").exists():
+                print(r.stdout[-2000:], r.stderr[-2000:], sep="\n")
+                sys.exit("selftest 실패: PPT 그림")
+            if want_ppt and not pngs:
+                print(r.stdout[-1500:])
+                print("⚠️ PPT 그림 이미지는 못 만듦(PowerPoint·LibreOffice 확인) — PPTX는 만들어짐")
+            import json
+            n = len(json.loads((T / "pptfigs" / "figures.json").read_text(encoding="utf-8"))["figures"])
+            print(f"PPT 그림 {n}개(수정 가능한 PPTX)" + (f" · 이미지 {len(pngs)}장" if pngs else ""))
         if want_pdf:
             hx, pdf_out = T / "ex.hwpx", T / "ex.pdf"
             print("한컴 PDF 시험 — 한글을 띄워 예시 보고서를 PDF로 저장한다(1~3분)")
@@ -343,6 +373,75 @@ def update(argv):
     sys.exit(rc)
 
 
+# ── key (외부 API 키) ────────────────────────────────────────────────
+def _keys_load():
+    import json
+    try:
+        return json.loads((HOME / "keys.json").read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001
+        return {}
+
+
+def _keys_save(d):
+    import json
+    HOME.mkdir(parents=True, exist_ok=True)
+    f = HOME / "keys.json"
+    f.write_text(json.dumps(d, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    try:
+        os.chmod(f, 0o600)                       # 나만 읽기(Windows는 사용자 폴더 권한을 따른다)
+    except OSError:
+        pass
+
+
+def key(argv):
+    """API 키가 필요한 기능을 위한 보관함. 값은 화면에 찍지 않는다(get만 값을 낸다 — 스크립트용).
+    종료 코드(get): 0 있음 · 3 아직 안 물음(사용자에게 한 번 묻는다) · 4 사용자가 없다고 함(묻지 않고 그 기능을 건너뛴다)"""
+    sub = argv[0] if argv else "list"
+    name = argv[1] if len(argv) > 1 else ""
+    d = _keys_load()
+    if sub == "list":
+        if not d:
+            print("저장된 API 키 없음 — 지금 기능은 키 없이 모두 동작한다")
+        for k, v in sorted(d.items()):
+            print(f"{k}: " + ("저장됨" if v.get("value") else "없음 — 이 키가 필요한 기능은 건너뜀") + f" ({v.get('at', '')})")
+        return
+    if not name:
+        sys.exit("키 이름이 필요하다 — 예: hr.py key get SOME_API_KEY")
+    from datetime import datetime
+    at = f"{datetime.now():%Y-%m-%d}"
+    if sub == "set":
+        if sys.stdin.isatty():
+            import getpass
+            val = getpass.getpass(f"{name} 값: ")
+        else:
+            val = sys.stdin.read()
+        val = val.strip()
+        if not val:
+            sys.exit("빈 값 — 표준 입력으로 넘긴다: printf %s '키' | hr.py key set " + name)
+        d[name] = {"value": val, "at": at}
+        _keys_save(d)
+        print(f"✓ {name} 저장 → {HOME / 'keys.json'}")
+    elif sub == "skip":
+        d[name] = {"skip": True, "at": at}
+        _keys_save(d)
+        print(f"✓ {name}: 없음으로 기록 — 이 키가 필요한 기능은 묻지 않고 건너뛴다(나중에 hr.py key set {name})")
+    elif sub == "get":
+        if os.environ.get(name):
+            print(os.environ[name])
+            return
+        v = d.get(name)
+        if v and v.get("value"):
+            print(v["value"])
+            return
+        sys.exit(4 if v and v.get("skip") else 3)
+    elif sub == "forget":
+        d.pop(name, None)
+        _keys_save(d)
+        print(f"✓ {name} 지움")
+    else:
+        sys.exit(f"모르는 key 명령: {sub} (list·set·skip·get·forget)")
+
+
 # ── pdf ──────────────────────────────────────────────────────────────
 def pdf(argv):
     if WIN:
@@ -371,6 +470,8 @@ def main():
         return selftest(rest)
     if cmd == "update":
         return update(rest)
+    if cmd == "key":
+        return key(rest)
     if cmd == "pdf":
         return pdf(rest)
     if cmd in SCRIPTS:

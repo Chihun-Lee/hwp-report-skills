@@ -31,6 +31,7 @@ description: 국책 R&D 연구보고서(연차보고서·연차점검·단계·�
 | `references/form_map.md` | 기본 양식 구조, 요약표 칸 주소 |
 | `references/layout.md` | 그림 크기 규약, 검수 순서, 한컴 PDF 함정, 꼬리 줄, 왕복 절차 |
 | `references/figure_rules.md` | 실데이터 그림 규칙(요약). 상세는 `report-figure` 스킬 |
+| `references/figure_ppt.md` | **수정 가능한 PPT 그림**(`HR figs`): 그림 1개 = 슬라이드 1장, 네이티브 차트·도형 → PNG·JPG |
 | `examples/report.example.yaml` | 기능을 모두 쓰는 예시 spec(가상 과제) |
 | `assets/forms/annual_review_2026/` | 기본 양식(form.hwpx)과 프로필(profile.yaml) |
 | `scripts/hwpx_patch.py` | 남의 양식에 문단·표를 끼워 넣는 라이브러리(서식 복제, 칸 안 메모·계산식 보존, 행 복제) |
@@ -41,6 +42,15 @@ description: 국책 R&D 연구보고서(연차보고서·연차점검·단계·�
 - `HR selftest`가 「selftest OK」로 끝나면 된다. `HR doctor`는 버전과, 무엇이 되고 무엇이 빠졌는지 보여 준다.
 - 사용자가 「hwp_report 업데이트해줘」, 「스킬 최신으로」라고 하면 `HR update`를 실행한다(timeout 10분). 최신본을 받아 다시 설치하고 자가검사까지 한다. 끝나면 Claude Code를 다시 시작해야 새 판이 쓰인다고 알린다.
 - 이 스킬을 처음 설치하는 절차(레포 링크를 받았을 때)는 레포의 `INSTALL.md`에 있다.
+- **외부 API 키**: 지금 기능은 모두 API 키 없이 동작한다. 그래서 설치할 때나 처음 쓸 때 키를 묻지 않는다. 어떤 기능이 API 키를 써야 할 때만 다음을 따른다(사용자가 외부 서비스 연동을 요청한 경우 등).
+  1. `HR key get <키 이름>`의 종료 코드를 본다.
+     - 0: 키가 있다. 출력값을 쓴다.
+     - 4: 사용자가 없다고 했다. **묻지 않고 그 기능만 건너뛰고** 나머지 작업을 계속한다.
+     - 3: 아직 물은 적이 없다. 2번으로 간다.
+  2. AskUserQuestion으로 한 번만 묻는다. 선택지는 「키 있음 — 붙여 넣기」와 「없음 — 이 기능 빼고 진행」이다.
+  3. 키가 있으면 `printf %s '<키>' | HR key set <키 이름>`, 없으면 `HR key skip <키 이름>`을 실행한다.
+     - 키는 `~/.hwp_report/keys.json`에만 둔다. spec·보고서·md·레포에는 쓰지 않는다.
+     - 건너뛴 기능은 결과 보고에 한 줄로 알린다.
 - 「파이썬 패키지 없음」이 나오면 **사용자에게 묻지 않고 `HR setup`을 실행한다**(1~2분). `~/.hwp_report/venv`에 lxml·pyyaml·pillow·numpy·PyMuPDF(+Windows는 pywin32)를 설치하고 끝에 `doctor`를 보여 준다. 스킬 폴더·전역 파이썬은 건드리지 않는다.
   - pip가 SSL·프록시 오류로 실패하면(회사망) `HR setup --pip-args "--trusted-host pypi.org --trusted-host files.pythonhosted.org"`.
   - 「Python 3.9 이상 필요」·`python`을 못 찾으면 사용자에게 설치를 안내한다. Windows: `winget install -e --id Python.Python.3.12` 또는 python.org(「Add python.exe to PATH」 체크).
@@ -119,7 +129,7 @@ description: 국책 R&D 연구보고서(연차보고서·연차점검·단계·�
 - 실데이터 논문식 figure만 쓴다. AI 생성 이미지와 픽토그램은 쓰지 않는다. 작성자가 지정한 AI 렌더만 예외로 넣고, 그림 안에 「AI 생성」을 표시한다.
 - 흰 배경, 그림 안 소제목·표 없음, 그래프는 테두리·눈금선 없음·안쪽 범례·한글 축·핵심 수치 표기, 문서 안 그래프 양식 통일.
 - 수행 과정 장에는 방법 그림, 결과·요약 절에는 결과·개념도(본문 그림 재사용 금지). 장비는 심의결과서·입찰공고·설치 사진, 교육은 현장 사진 + 서명록.
-- 수정 가능한 PPT로 달라고 하면 그림 1개 = 슬라이드 1장(네이티브 차트·도형).
+- 수정 가능한 PPT로 달라고 하면 `HR figs`로 만든다(`references/figure_ppt.md`). 그림 1개 = 슬라이드 1장(네이티브 차트·도형), 보고서용 jpg도 함께 나온다. 작성자가 고친 PPTX는 `HR figs --from 고친.pptx`로 다시 뽑는다.
 - 400 dpi jpg로 만들어 spec의 `figures` 폴더에 둔다. 파일 이름이 곧 그림 ID다. 문서 상한은 150 × 105 mm.
 - 규칙은 `references/figure_rules.md`, 만드는 절차는 `report-figure` 스킬에 있다.
 

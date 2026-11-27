@@ -64,7 +64,7 @@ python3 "$HOME/.hwp_report/src/install.py"        # macOS·Linux
 - 파이썬 패키지를 내려받으므로 1~3분 걸린다. **Bash 도구 timeout을 600000(10분)으로 준다.**
 - 하는 일
   1. 스킬을 넣는다.
-  2. `~/.hwp_report/venv`에 lxml·pyyaml·pillow·numpy·PyMuPDF·matplotlib을 설치한다. Windows는 pywin32도 설치한다.
+  2. `~/.hwp_report/venv`에 lxml·pyyaml·pillow·numpy·PyMuPDF·matplotlib·python-pptx를 설치한다. Windows는 pywin32도 설치한다.
   3. Windows는 한글 보안 모듈을 등록한다.
   4. `doctor`(설치 상태)와 `selftest`(예시 보고서 빌드·검사)를 돌린다.
 - 성공: 출력 끝에 `selftest OK`와 `✓ 설치 완료`가 나온다.
@@ -73,18 +73,23 @@ python3 "$HOME/.hwp_report/src/install.py"        # macOS·Linux
   py -3 "$HOME/.hwp_report/src/install.py" --pip-args "--trusted-host pypi.org --trusted-host files.pythonhosted.org"
   ```
 
-## 4. 한컴 PDF 시험 — Windows에서 한글이 있을 때만
+## 4. 한컴 PDF·PPT 그림 시험 — Windows에서 한글·PowerPoint가 있을 때만
 
 **macOS·Linux는 이 단계를 건너뛴다.** macOS에서는 한컴 창이 화면 앞으로 올라오므로 사용자가 원할 때만 한다.
 
-Windows에서 3단계의 `doctor` 출력에 「한컴오피스 한글 COM(HWPFrame.HwpObject) 등록됨」이 있으면 이 시험을 한다. 먼저 사용자에게 「한글이 잠깐 백그라운드에서 실행된다」고 알린다.
+Windows에서 3단계의 `doctor` 출력을 보고 고른다. 먼저 사용자에게 「한글·PowerPoint가 잠깐 백그라운드에서 실행된다」고 알린다.
+
+- 「한컴오피스 한글 COM(HWPFrame.HwpObject) 등록됨」이 있으면 `--pdf`를 붙인다.
+- 「그림 이미지 뽑기: PowerPoint」가 있으면 `--ppt`를 붙인다.
 
 ```bash
-py -3 "$HOME/.claude/skills/hwp_report/scripts/hr.py" selftest --pdf
+py -3 "$HOME/.claude/skills/hwp_report/scripts/hr.py" selftest --pdf --ppt
 ```
 
 - 결과 읽기
   - `한컴 PDF OK`와 `selftest OK`가 나오면 한컴 PDF로 쪽·꼬리 줄을 검수할 수 있다.
+  - `PPT 그림 3개(수정 가능한 PPTX) · 이미지 3장`이 나오면 PowerPoint로 그림 이미지를 뽑을 수 있다.
+  - PowerPoint가 없어도 수정 가능한 PPTX는 만들어진다. 이 경우 보고서용 이미지는 사용자가 PowerPoint에서 복사해 붙인다.
   - 한글 창에 「한글을 이용하여 파일에 접근하려는 시도」가 뜨면, 사용자에게 「모두 허용」을 눌러 달라고 한다.
   - 실패해도 hwpx 작성과 게이트 검사는 된다. 출력과 종료 코드(5 한글 COM 없음 · 6 열기·저장 실패 · 7 시간 초과)를 사용자에게 그대로 보여 준다.
 - 한글이 없으면 건너뛴다.
@@ -99,6 +104,15 @@ py -3 "$HOME/.claude/skills/hwp_report/scripts/hr.py" selftest --pdf
   - 「내가 한컴에서 고친 거 반영해줘」
   - 처음 쓸 때 Claude가 문체(기본 또는 내 문체)와 양식(기본 또는 받은 양식)을 묻는다.
 - 한글이 없거나 4단계가 실패했으면 이렇게 알린다: hwpx는 만들어지지만 쪽 확인(PDF)은 사용자가 한글에서 직접 한다.
+- 「보고서 그림 수정 가능한 PPT로 만들어줘」라고 하면 그림 1개 = 슬라이드 1장(네이티브 차트·도형)으로 만든다고 알린다.
+
+## API 키 — 묻지 않는다
+
+- 이 스킬의 기능은 모두 API 키 없이 동작한다. **설치할 때 사용자에게 API 키를 묻지 않는다.**
+- 나중에 어떤 기능이 API 키를 써야 하면, 그 기능을 처음 쓸 때 한 번만 묻는다.
+  - 키가 없다고 하면 그 기능만 건너뛰고 나머지를 계속한다.
+  - 다음부터는 다시 묻지 않는다.
+  - 절차는 `SKILL.md` §0 「외부 API 키」에 있다(`hr.py key`).
 
 ## 업데이트·삭제
 
